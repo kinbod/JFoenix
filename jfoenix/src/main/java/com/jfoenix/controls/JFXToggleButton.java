@@ -20,6 +20,7 @@
 package com.jfoenix.controls;
 
 import com.jfoenix.skins.JFXToggleButtonSkin;
+import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.PaintConverter;
 import javafx.css.*;
 import javafx.scene.control.Control;
@@ -85,12 +86,22 @@ public class JFXToggleButton extends ToggleButton {
 
     private void initialize() {
         this.getStyleClass().add(DEFAULT_STYLE_CLASS);
-        toggleColor.addListener((o, oldVal, newVal) -> {
-            // update line color in case not set by the user
-            if(newVal instanceof Color)
-                toggleLineColor.set(((Color)newVal).desaturate().desaturate().brighter());
-        });
+        // it's up for the user to add this behavior
+//        toggleColor.addListener((o, oldVal, newVal) -> {
+//            // update line color in case not set by the user
+//            if(newVal instanceof Color)
+//                toggleLineColor.set(((Color)newVal).desaturate().desaturate().brighter());
+//        });
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getUserAgentStylesheet() {
+        return getClass().getResource("/css/controls/jfx-toggle-button.css").toExternalForm();
+    }
+
 
     /***************************************************************************
      *                                                                         *
@@ -190,6 +201,69 @@ public class JFXToggleButton extends ToggleButton {
         this.untoggleLineColor.set(color);
     }
 
+    /**
+     * Default size of the toggle button.
+     */
+    private final StyleableDoubleProperty size = new SimpleStyleableDoubleProperty(
+        StyleableProperties.SIZE,
+        JFXToggleButton.this,
+        "size",
+        10.0);
+
+    public double getSize() {
+        return size.get();
+    }
+
+    public StyleableDoubleProperty sizeProperty() {
+        return this.size;
+    }
+
+    public void setSize(double size) {
+        this.size.set(size);
+    }
+
+    /**
+     * Disable the visual indicator for focus
+     */
+    private StyleableBooleanProperty disableVisualFocus = new SimpleStyleableBooleanProperty(StyleableProperties.DISABLE_VISUAL_FOCUS,
+        JFXToggleButton.this,
+        "disableVisualFocus",
+        false);
+
+    public final StyleableBooleanProperty disableVisualFocusProperty() {
+        return this.disableVisualFocus;
+    }
+
+    public final Boolean isDisableVisualFocus() {
+        return disableVisualFocus != null && this.disableVisualFocusProperty().get();
+    }
+
+    public final void setDisableVisualFocus(final Boolean disabled) {
+        this.disableVisualFocusProperty().set(disabled);
+    }
+
+
+    /**
+     * disable animation on button action
+     */
+    private StyleableBooleanProperty disableAnimation = new SimpleStyleableBooleanProperty(JFXToggleButton.StyleableProperties.DISABLE_ANIMATION,
+        JFXToggleButton.this,
+        "disableAnimation",
+        false);
+
+    public final StyleableBooleanProperty disableAnimationProperty() {
+        return this.disableAnimation;
+    }
+
+    public final Boolean isDisableAnimation() {
+        return disableAnimation != null && this.disableAnimationProperty().get();
+    }
+
+    public final void setDisableAnimation(final Boolean disabled) {
+        this.disableAnimationProperty().set(disabled);
+    }
+
+
 
     private static class StyleableProperties {
         private static final CssMetaData<JFXToggleButton, Paint> TOGGLE_COLOR =
@@ -248,6 +322,46 @@ public class JFXToggleButton extends ToggleButton {
                 }
             };
 
+        private static final CssMetaData<JFXToggleButton, Number> SIZE =
+            new CssMetaData<JFXToggleButton, Number>("-jfx-size",
+                StyleConverter.getSizeConverter(), 10.0) {
+                @Override
+                public boolean isSettable(JFXToggleButton control) {
+                    return !control.size.isBound();
+                }
+
+                @Override
+                public StyleableProperty<Number> getStyleableProperty(JFXToggleButton control) {
+                    return control.sizeProperty();
+                }
+            };
+        private static final CssMetaData<JFXToggleButton, Boolean> DISABLE_VISUAL_FOCUS =
+            new CssMetaData<JFXToggleButton, Boolean>("-jfx-disable-visual-focus",
+                BooleanConverter.getInstance(), false) {
+                @Override
+                public boolean isSettable(JFXToggleButton control) {
+                    return control.disableVisualFocus == null || !control.disableVisualFocus.isBound();
+                }
+
+                @Override
+                public StyleableBooleanProperty getStyleableProperty(JFXToggleButton control) {
+                    return control.disableVisualFocusProperty();
+                }
+            };
+
+        private static final CssMetaData<JFXToggleButton, Boolean> DISABLE_ANIMATION =
+            new CssMetaData<JFXToggleButton, Boolean>("-jfx-disable-animation",
+                BooleanConverter.getInstance(), false) {
+                @Override
+                public boolean isSettable(JFXToggleButton control) {
+                    return control.disableAnimation == null || !control.disableAnimation.isBound();
+                }
+
+                @Override
+                public StyleableBooleanProperty getStyleableProperty(JFXToggleButton control) {
+                    return control.disableAnimationProperty();
+                }
+            };
 
         private static final List<CssMetaData<? extends Styleable, ?>> CHILD_STYLEABLES;
 
@@ -255,10 +369,13 @@ public class JFXToggleButton extends ToggleButton {
             final List<CssMetaData<? extends Styleable, ?>> styleables =
                 new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables,
+                SIZE,
                 TOGGLE_COLOR,
                 UNTOGGLE_COLOR,
                 TOGGLE_LINE_COLOR,
-                UNTOGGLE_LINE_COLOR
+                UNTOGGLE_LINE_COLOR,
+                DISABLE_VISUAL_FOCUS,
+                DISABLE_ANIMATION
             );
             CHILD_STYLEABLES = Collections.unmodifiableList(styleables);
         }

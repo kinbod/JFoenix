@@ -66,7 +66,12 @@ public class JFXTimePickerSkin extends ComboBoxPopupControl<LocalTime> {
             changeListenersField.setAccessible(true);
             ChangeListener[] changeListeners = (ChangeListener[]) changeListenersField.get(value);
             // remove parent focus listener to prevent editor class cast exception
-            timePicker.focusedProperty().removeListener(changeListeners[changeListeners.length - 1]);
+            for(int i = changeListeners.length - 1; i > 0; i--){
+                if(changeListeners[i] != null && changeListeners[i].getClass().getName().contains("ComboBoxPopupControl")){
+                    timePicker.focusedProperty().removeListener(changeListeners[i]);
+                    break;
+                }
+            }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (NoSuchFieldException e) {
@@ -92,14 +97,12 @@ public class JFXTimePickerSkin extends ComboBoxPopupControl<LocalTime> {
             + "159.714-220.286 58.857-220.286-58.857-159.714-159.714-58.857-220.286 "
             + "58.857-220.286 159.714-159.714 220.286-58.857 220.286 58.857 159.714 159.714 "
             + "58.857 220.286z",
-            Color.BLACK);
-        ((SVGGlyph) arrow).fillProperty().bind(timePicker.defaultColorProperty());
+            null);
+        ((SVGGlyph) arrow).setFill(timePicker.getDefaultColor());
         ((SVGGlyph) arrow).setSize(20, 20);
         arrowButton.getChildren().setAll(arrow);
-        arrowButton.setBackground(new Background(new BackgroundFill(Color.TRANSPARENT,
-            CornerRadii.EMPTY,
-            Insets.EMPTY)));
-        arrowButton.setPadding(new Insets(1, 8, 1, 8));
+
+        ((JFXTextField) getEditor()).setFocusColor(timePicker.getDefaultColor());
 
         //dialog = new JFXDialog(null, content, transitionType, overlayClose)
         registerChangeListener(timePicker.converterProperty(), "CONVERTER");

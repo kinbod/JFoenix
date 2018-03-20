@@ -75,8 +75,15 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
     private void initialize() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAccessibleRole(AccessibleRole.DATE_PICKER);
-        setBackground(new Background(new BackgroundFill(Color.TRANSPARENT, CornerRadii.EMPTY, Insets.EMPTY)));
         setEditable(true);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getUserAgentStylesheet() {
+        return getClass().getResource("/css/controls/jfx-time-picker.css").toExternalForm();
     }
 
     /**
@@ -168,7 +175,6 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
         if (editor == null) {
             editor = new ReadOnlyObjectWrapper<>(this, "editor");
             final FakeFocusJFXTextField editorNode = new FakeFocusJFXTextField();
-            editorNode.focusColorProperty().bind(this.defaultColorProperty());
             this.focusedProperty().addListener((obj, oldVal, newVal) -> {
                 if (getEditor() != null) {
                     editorNode.setFakeFocus(newVal);
@@ -239,7 +245,7 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
     private static class StyleableProperties {
         private static final CssMetaData<JFXTimePicker, Paint> DEFAULT_COLOR =
             new CssMetaData<JFXTimePicker, Paint>("-jfx-default-color",
-                PaintConverter.getInstance(), Color.valueOf("#5A5A5A")) {
+                PaintConverter.getInstance(), Color.valueOf("#009688")) {
                 @Override
                 public boolean isSettable(JFXTimePicker control) {
                     return control.defaultColor == null || !control.defaultColor.isBound();

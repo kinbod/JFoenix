@@ -70,14 +70,12 @@ public class JFXDatePicker extends DatePicker {
 
     private void initialize() {
         this.getStyleClass().add(DEFAULT_STYLE_CLASS);
-        setBackground(new Background(new BackgroundFill(Color.TRANSPARENT, CornerRadii.EMPTY, Insets.EMPTY)));
         try {
             editorProperty();
             Field editorField = getClass().getSuperclass().getDeclaredField("editor");
             editorField.setAccessible(true);
             ReadOnlyObjectWrapper<TextField> editor = (ReadOnlyObjectWrapper<TextField>) editorField.get(this);
             final FakeFocusJFXTextField editorNode = new FakeFocusJFXTextField();
-            editorNode.focusColorProperty().bind(this.defaultColorProperty());
             this.focusedProperty().addListener((obj, oldVal, newVal) -> {
                 if (getEditor() != null) {
                     editorNode.setFakeFocus(newVal);
@@ -87,6 +85,14 @@ public class JFXDatePicker extends DatePicker {
         } catch (NoSuchFieldException e) {
         } catch (IllegalAccessException e) {
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getUserAgentStylesheet() {
+        return getClass().getResource("/css/controls/jfx-date-picker.css").toExternalForm();
     }
 
     /**
@@ -181,7 +187,7 @@ public class JFXDatePicker extends DatePicker {
     private static class StyleableProperties {
         private static final CssMetaData<JFXDatePicker, Paint> DEFAULT_COLOR =
             new CssMetaData<JFXDatePicker, Paint>("-jfx-default-color",
-                PaintConverter.getInstance(), Color.valueOf("#5A5A5A")) {
+                PaintConverter.getInstance(), Color.valueOf("#009688")) {
                 @Override
                 public boolean isSettable(JFXDatePicker control) {
                     return control.defaultColor == null || !control.defaultColor.isBound();

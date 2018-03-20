@@ -27,7 +27,7 @@ import javafx.scene.Node;
 import javafx.util.Duration;
 
 /**
- * applies animation on a cahced node to improve the performance
+ * applies animation on a cached node to improve the performance
  *
  * @author Shadi Shaheen
  * @version 1.0
@@ -41,9 +41,10 @@ public class CachedTransition extends Transition {
 
     public CachedTransition(final Node node, final Timeline timeline) {
         this.node = node;
+        nodeCacheMomento = new CacheMomento(node);
         this.timeline.set(timeline);
-        statusProperty().addListener((o, oldStatus, newStatus) -> {
-            switch (newStatus) {
+        statusProperty().addListener(observable -> {
+            switch (getStatus()) {
                 case RUNNING:
                     starting();
                     break;
@@ -56,10 +57,11 @@ public class CachedTransition extends Transition {
 
     public CachedTransition(final Node node, final Timeline timeline, CacheMomento... cacheMomentos) {
         this.node = node;
+        nodeCacheMomento = new CacheMomento(node);
         this.timeline.set(timeline);
         this.momentos = cacheMomentos;
-        statusProperty().addListener((o, oldStatus, newStatus) -> {
-            switch (newStatus) {
+        statusProperty().addListener(observable -> {
+            switch (getStatus()) {
                 case RUNNING:
                     starting();
                     break;
@@ -74,7 +76,6 @@ public class CachedTransition extends Transition {
      * Called when the animation is starting
      */
     protected void starting() {
-        nodeCacheMomento = new CacheMomento(node);
         nodeCacheMomento.cache();
         if (momentos != null) {
             for (int i = 0; i < momentos.length; i++) {
