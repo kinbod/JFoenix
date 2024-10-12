@@ -1,30 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
+import com.jfoenix.assets.JFoenixResources;
 import com.jfoenix.skins.JFXCheckBoxSkin;
+import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.PaintConverter;
 import javafx.css.*;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.Control;
-import javafx.scene.control.Labeled;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -100,7 +102,7 @@ public class JFXCheckBox extends CheckBox {
      * this control.
      */
     private static final String DEFAULT_STYLE_CLASS = "jfx-check-box";
-    private static final String USER_AGENT_STYLESHEET = JFXCheckBox.class.getResource("/css/controls/jfx-check-box.css").toExternalForm();
+    private static final String USER_AGENT_STYLESHEET = JFoenixResources.load("css/controls/jfx-check-box.css").toExternalForm();
     /**
      * checkbox color property when selected
      */
@@ -143,6 +145,37 @@ public class JFXCheckBox extends CheckBox {
         this.unCheckedColor.set(color);
     }
 
+    /**
+     * Disable the visual indicator for focus.
+     */
+    private StyleableBooleanProperty disableVisualFocus = new SimpleStyleableBooleanProperty(StyleableProperties.DISABLE_VISUAL_FOCUS,
+        JFXCheckBox.this,
+        "disableVisualFocus",
+        false);
+
+    /**
+     * Setting this property disables this {@link JFXCheckBox} from showing keyboard focus.
+     * @return A property that will disable visual focus if true and enable it if false.
+     */
+    public final StyleableBooleanProperty disableVisualFocusProperty() {
+        return this.disableVisualFocus;
+    }
+
+    /**
+     * Indicates whether or not this {@link JFXCheckBox} will show focus when it receives keyboard focus.
+     * @return False if this {@link JFXCheckBox} will show visual focus and true if it will not.
+     */
+    public final Boolean isDisableVisualFocus() {
+        return disableVisualFocus != null && this.disableVisualFocusProperty().get();
+    }
+
+    /**
+     * Setting this to true will disable this {@link JFXCheckBox} from showing focus when it receives keyboard focus.
+     * @param disabled True to disable visual focus and false to enable it.
+     */
+    public final void setDisableVisualFocus(final Boolean disabled) {
+        this.disableVisualFocusProperty().set(disabled);
+    }
 
     private static class StyleableProperties {
         private static final CssMetaData<JFXCheckBox, Paint> CHECKED_COLOR =
@@ -171,7 +204,19 @@ public class JFXCheckBox extends CheckBox {
                     return control.unCheckedColorProperty();
                 }
             };
+        private static final CssMetaData<JFXCheckBox, Boolean> DISABLE_VISUAL_FOCUS =
+            new CssMetaData<JFXCheckBox, Boolean>("-jfx-disable-visual-focus",
+                BooleanConverter.getInstance(), false) {
+                @Override
+                public boolean isSettable(JFXCheckBox control) {
+                    return control.disableVisualFocus == null || !control.disableVisualFocus.isBound();
+                }
 
+                @Override
+                public StyleableBooleanProperty getStyleableProperty(JFXCheckBox control) {
+                    return control.disableVisualFocusProperty();
+                }
+            };
         private static final List<CssMetaData<? extends Styleable, ?>> CHILD_STYLEABLES;
 
         static {
@@ -179,7 +224,8 @@ public class JFXCheckBox extends CheckBox {
                 new ArrayList<>(CheckBox.getClassCssMetaData());
             Collections.addAll(styleables,
                 CHECKED_COLOR,
-                UNCHECKED_COLOR
+                UNCHECKED_COLOR,
+                DISABLE_VISUAL_FOCUS
             );
             CHILD_STYLEABLES = Collections.unmodifiableList(styleables);
         }

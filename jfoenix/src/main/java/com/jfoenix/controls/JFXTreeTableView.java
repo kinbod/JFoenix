@@ -1,27 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
-import com.jfoenix.concurrency.JFXUtilities;
+import com.jfoenix.assets.JFoenixResources;
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
 import com.jfoenix.skins.JFXTreeTableViewSkin;
+import com.jfoenix.utils.JFXUtilities;
 import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -35,11 +38,18 @@ import javafx.scene.control.TreeTableColumn;
 import javafx.scene.control.TreeTableView;
 import javafx.scene.input.MouseEvent;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 /**
@@ -52,6 +62,7 @@ import java.util.function.Predicate;
 public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTableView<S> {
 
     private TreeItem<S> originalRoot;
+    private boolean internalSetRoot = false;
 
     /**
      * {@inheritDoc}
@@ -111,7 +122,12 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
             if (getRoot() != null) {
                 setCurrentItemsCount(count(getRoot()));
             }
+            if (!internalSetRoot) {
+                originalRoot = getRoot();
+                reGroup();
+            }
         });
+
         // compute the current items count
         setCurrentItemsCount(count(getRoot()));
     }
@@ -119,7 +135,7 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
 
     private static final String DEFAULT_STYLE_CLASS = "jfx-tree-table-view";
 
-    private static final String USER_AGENT_STYLESHEET = JFXTreeTableView.class.getResource("/css/controls/jfx-tree-table-view.css").toExternalForm();
+    private static final String USER_AGENT_STYLESHEET = JFoenixResources.load("css/controls/jfx-tree-table-view.css").toExternalForm();
 
     /**
      * {@inheritDoc}
@@ -185,6 +201,16 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
     // lock is used to force mutual exclusion while group/ungroup operation
     private final Lock lock = new ReentrantLock(true);
 
+    BiConsumer<Object, RecursiveTreeObject> groupedRootConsumer = null;
+
+    public BiConsumer<Object, RecursiveTreeObject> getGroupedRootConsumer() {
+        return groupedRootConsumer;
+    }
+
+    public void setGroupedRootConsumer(BiConsumer<Object, RecursiveTreeObject> groupedRootConsumer) {
+        this.groupedRootConsumer = groupedRootConsumer;
+    }
+
     /**
      * this is a blocking method so it should not be called from the ui thread,
      * it will regroup the tree table view
@@ -202,10 +228,15 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
                 if (originalRoot == null) {
                     originalRoot = getRoot();
                 }
+                List<TreeTableColumn<S, ?>> toBeAdded = new ArrayList<>();
                 for (TreeTableColumn<S, ?> treeTableColumn : treeTableColumns) {
+                    if (groupOrder.contains(treeTableColumn)) {
+                        continue;
+                    }
+                    toBeAdded.add(treeTableColumn);
                     groups = group(treeTableColumn, groups, null, (RecursiveTreeItem<S>) originalRoot);
                 }
-                groupOrder.addAll(treeTableColumns);
+                groupOrder.addAll(toBeAdded);
                 // update table ui
                 buildGroupedRoot(groups, null, 0);
             } catch (Exception e) {
@@ -221,7 +252,7 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
         for (TreeTableColumn<S, ?> treeTableColumn : groupColumns) {
             groups = group(treeTableColumn, groups, null, (RecursiveTreeItem<S>) originalRoot);
         }
-        groupOrder.addAll(groupColumns);
+        groupOrder.setAll(groupColumns);
         // update table ui
         buildGroupedRoot(groups, null, 0);
     }
@@ -237,9 +268,7 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
             lock.lock();
             if (groupOrder.size() > 0) {
                 groupOrder.removeAll(treeTableColumns);
-                List<TreeTableColumn<S, ?>> grouped = new ArrayList<>();
-                grouped.addAll(groupOrder);
-                groupOrder.clear();
+                List<TreeTableColumn<S, ?>> grouped = new ArrayList<>(groupOrder);
                 JFXUtilities.runInFXAndWait(() -> {
                     ArrayList<TreeTableColumn<S, ?>> sortOrder = new ArrayList<>();
                     sortOrder.addAll(getSortOrder());
@@ -248,7 +277,9 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
                     originalRoot.getChildren().clear();
                     originalRoot.getChildren().setAll(children);
                     // reset the original root
+                    internalSetRoot = true;
                     setRoot(originalRoot);
+                    internalSetRoot = false;
                     getSelectionModel().select(0);
                     getSortOrder().addAll(sortOrder);
                     if (grouped.size() != 0) {
@@ -300,14 +331,15 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
      * this method is used to update tree items and set the new root
      * after grouping the data model
      */
-    private void buildGroupedRoot(Map groupedItems, RecursiveTreeItem parent, int groupIndex) {
+    private void buildGroupedRoot(Map<?, ?> groupedItems, RecursiveTreeItem parent, int groupIndex) {
         boolean setRoot = false;
         if (parent == null) {
             parent = new RecursiveTreeItem<>(new RecursiveTreeObject(), RecursiveTreeObject::getChildren);
             setRoot = true;
         }
 
-        for (Object key : groupedItems.keySet()) {
+        for (Map.Entry<?, ?> entry : groupedItems.entrySet()) {
+            Object key = entry.getKey();
             RecursiveTreeObject groupItem = new RecursiveTreeObject<>();
             groupItem.setGroupedValue(key);
             groupItem.setGroupedColumn(groupOrder.get(groupIndex));
@@ -321,12 +353,16 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
             parent.originalItems.add(node);
             parent.getChildren().add(node);
 
-            Object children = groupedItems.get(key);
+            Object children = entry.getValue();
             if (children instanceof List) {
                 node.originalItems.addAll((List) children);
                 node.getChildren().addAll((List) children);
             } else if (children instanceof Map) {
                 buildGroupedRoot((Map) children, node, groupIndex + 1);
+            }
+            groupItem.setChildren(node.getChildren());
+            if (groupedRootConsumer != null) {
+                groupedRootConsumer.accept(key, groupItem);
             }
         }
 
@@ -336,7 +372,9 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
             JFXUtilities.runInFX(() -> {
                 ArrayList<TreeTableColumn<S, ?>> sortOrder = new ArrayList<>();
                 sortOrder.addAll(getSortOrder());
+                internalSetRoot = true;
                 setRoot(newParent);
+                internalSetRoot = false;
                 getSortOrder().addAll(sortOrder);
                 getSelectionModel().select(0);
             });
@@ -386,7 +424,7 @@ public class JFXTreeTableView<S extends RecursiveTreeObject<S>> extends TreeTabl
         if (!groupOrder.isEmpty()) {
             ArrayList<TreeTableColumn<S, ?>> tempGroups = new ArrayList<>(groupOrder);
             groupOrder.clear();
-            group(tempGroups.toArray(new TreeTableColumn[tempGroups.size()]));
+            group(tempGroups.toArray(new TreeTableColumn[0]));
         }
     }
 

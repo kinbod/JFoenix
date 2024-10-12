@@ -1,46 +1,45 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
+import com.jfoenix.assets.JFoenixResources;
+import com.jfoenix.controls.base.IFXValidatableControl;
 import com.jfoenix.skins.JFXTimePickerSkin;
+import com.jfoenix.validation.base.ValidatorBase;
 import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.PaintConverter;
-import com.sun.javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.beans.property.*;
+import javafx.collections.ObservableList;
 import javafx.css.*;
-import javafx.geometry.Insets;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.ComboBoxBase;
-import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.util.StringConverter;
 import javafx.util.converter.LocalTimeStringConverter;
 
-import java.lang.reflect.Field;
 import java.time.LocalTime;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -55,7 +54,7 @@ import java.util.Locale;
  * @version 1.0
  * @since 2017-03-01
  */
-public class JFXTimePicker extends ComboBoxBase<LocalTime> {
+public class JFXTimePicker extends ComboBoxBase<LocalTime> implements IFXValidatableControl {
 
     /**
      * {@inheritDoc}
@@ -83,7 +82,7 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
      */
     @Override
     public String getUserAgentStylesheet() {
-        return getClass().getResource("/css/controls/jfx-time-picker.css").toExternalForm();
+        return JFoenixResources.load("css/controls/jfx-time-picker.css").toExternalForm();
     }
 
     /**
@@ -143,7 +142,7 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
     }
 
     private StringConverter<LocalTime> defaultConverter = new LocalTimeStringConverter(FormatStyle.SHORT,
-        Locale.ENGLISH);
+        Locale.getDefault());
 
     private BooleanProperty _24HourView = new SimpleBooleanProperty(false);
 
@@ -155,10 +154,9 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
         return _24HourViewProperty().get();
     }
 
-    public final void setIs24HourView(final boolean value) {
+    public final void set24HourView(final boolean value) {
         _24HourViewProperty().setValue(value);
     }
-
 
     /**
      * The editor for the JFXTimePicker.
@@ -180,9 +178,42 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
                     editorNode.setFakeFocus(newVal);
                 }
             });
+            editorNode.activeValidatorWritableProperty().bind(activeValidatorProperty());
             editor.set(editorNode);
         }
         return editor.getReadOnlyProperty();
+    }
+
+    private ValidationControl validationControl = new ValidationControl(this);
+
+    @Override
+    public ValidatorBase getActiveValidator() {
+        return validationControl.getActiveValidator();
+    }
+
+    @Override
+    public ReadOnlyObjectProperty<ValidatorBase> activeValidatorProperty() {
+        return validationControl.activeValidatorProperty();
+    }
+
+    @Override
+    public ObservableList<ValidatorBase> getValidators() {
+        return validationControl.getValidators();
+    }
+
+    @Override
+    public void setValidators(ValidatorBase... validators) {
+        validationControl.setValidators(validators);
+    }
+
+    @Override
+    public boolean validate() {
+        return validationControl.validate();
+    }
+
+    @Override
+    public void resetValidation() {
+        validationControl.resetValidation();
     }
 
     /***************************************************************************
@@ -275,7 +306,7 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
 
         static {
             final List<CssMetaData<? extends Styleable, ?>> styleables =
-                new ArrayList<>(Control.getClassCssMetaData());
+                new ArrayList<>(ComboBoxBase.getClassCssMetaData());
             Collections.addAll(styleables,
                 DEFAULT_COLOR,
                 OVERLAY);
@@ -283,19 +314,9 @@ public class JFXTimePicker extends ComboBoxBase<LocalTime> {
         }
     }
 
-    // inherit the styleable properties from parent
-    private List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
-
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
-        if (STYLEABLES == null) {
-            final List<CssMetaData<? extends Styleable, ?>> styleables =
-                new ArrayList<>(Control.getClassCssMetaData());
-            styleables.addAll(getClassCssMetaData());
-            styleables.addAll(Control.getClassCssMetaData());
-            STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-        return STYLEABLES;
+        return getClassCssMetaData();
     }
 
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {

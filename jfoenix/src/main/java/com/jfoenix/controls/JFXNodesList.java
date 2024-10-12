@@ -1,26 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
 import javafx.animation.*;
 import javafx.animation.Animation.Status;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -330,27 +333,30 @@ public class JFXNodesList extends VBox {
     }
 
     private void createAnimation(boolean expanded, Timeline animation) {
-        double duration = 160 / (double) getChildren().size();
+        final ObservableList<Node> children = getChildren();
+        double duration = 160 / (double) children.size();
         // show child nodes
         if (expanded) {
-            getChildren().forEach(child -> child.setVisible(true));
+            for (Node child : children) {
+                child.setVisible(true);
+            }
         }
 
         // add child nodes animation
-        for (int i = 1; i < getChildren().size(); i++) {
-            Node child = getChildren().get(i);
+        for (int i = 1; i < children.size(); i++) {
+            Node child = children.get(i);
             Collection<KeyFrame> frames = animationsMap.get(child).apply(expanded, Duration.millis(i * duration));
             animation.getKeyFrames().addAll(frames);
         }
         // add 1st element animation
-        Collection<KeyFrame> frames = animationsMap.get(getChildren().get(0)).apply(expanded, Duration.millis(160));
+        Collection<KeyFrame> frames = animationsMap.get(children.get(0)).apply(expanded, Duration.millis(160));
         animation.getKeyFrames().addAll(frames);
 
         // hide child nodes to allow mouse events on the nodes behind them
         if (!expanded) {
             animation.setOnFinished((finish) -> {
-                for (int i = 1; i < getChildren().size(); i++) {
-                    getChildren().get(i).setVisible(false);
+                for (int i = 1; i < children.size(); i++) {
+                    children.get(i).setVisible(false);
                 }
             });
         } else {

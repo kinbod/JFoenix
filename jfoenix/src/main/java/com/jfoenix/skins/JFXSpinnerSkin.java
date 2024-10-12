@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.skins;
@@ -58,6 +60,7 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
     private Color blueColor;
     private Timeline timeline;
     private Arc arc;
+    private Arc track;
     private final StackPane arcPane;
     private final Rectangle fillRect;
     private double arcLength = -1;
@@ -81,11 +84,19 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
         arc.setFill(Color.TRANSPARENT);
         arc.setStrokeWidth(3);
 
+        track = new Arc();
+        track.setManaged(false);
+        track.setStartAngle(0);
+        track.setLength(360);
+        track.setStrokeWidth(3);
+        track.getStyleClass().setAll("track");
+        track.setFill(Color.TRANSPARENT);
+
         fillRect = new Rectangle();
         fillRect.setFill(Color.TRANSPARENT);
         text = new Text();
         text.getStyleClass().setAll("text", "percentage");
-        final Group group = new Group(fillRect, arc, text);
+        final Group group = new Group(fillRect, track, arc, text);
         group.setManaged(false);
         arcPane = new StackPane(group);
         arcPane.setPrefSize(50, 50);
@@ -219,10 +230,7 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
         final double arcSize = snapSize(radius * 2 + strokeWidth);
 
         arcPane.resizeRelocate((contentWidth - arcSize) / 2 + 1, (contentHeight - arcSize) / 2 + 1, arcSize, arcSize);
-        arc.setRadiusX(radius);
-        arc.setRadiusY(radius);
-        arc.setCenterX(arcSize / 2);
-        arc.setCenterY(arcSize / 2);
+        updateArcLayout(radius, arcSize);
 
         fillRect.setWidth(arcSize);
         fillRect.setHeight(arcSize);
@@ -245,6 +253,19 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
         }
     }
 
+	private void updateArcLayout(double radius, double arcSize) {
+        arc.setRadiusX(radius);
+        arc.setRadiusY(radius);
+        arc.setCenterX(arcSize / 2);
+        arc.setCenterY(arcSize / 2);
+
+        track.setRadiusX(radius);
+        track.setRadiusY(radius);
+        track.setCenterX(arcSize / 2);
+        track.setCenterY(arcSize / 2);
+        track.setStrokeWidth(arc.getStrokeWidth());
+	}
+
     boolean wasIndeterminate = false;
 
     protected void updateProgress() {
@@ -258,6 +279,7 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
     }
 
     private void createTransition() {
+        if(!getSkinnable().isIndeterminate()) return;
         final Paint initialColor = arc.getStroke();
         if (initialColor == null) {
             arc.setStroke(blueColor);
@@ -313,6 +335,7 @@ public class JFXSpinnerSkin extends BehaviorSkinBase<JFXSpinner, BehaviorBase<JF
         super.dispose();
         clearAnimation();
         arc = null;
+        track = null;
         control = null;
     }
 }

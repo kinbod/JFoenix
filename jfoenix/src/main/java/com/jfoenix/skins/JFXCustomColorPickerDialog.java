@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.skins;
@@ -32,13 +34,13 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
 import javafx.stage.*;
 import javafx.util.Duration;
 
@@ -78,7 +80,7 @@ public class JFXCustomColorPickerDialog extends StackPane {
 
         // create JFX Decorator
         pickerDecorator = new JFXDecorator(dialog, this, false, false, false);
-        pickerDecorator.setOnCloseButtonAction(() -> close());
+        pickerDecorator.setOnCloseButtonAction(() -> updateColor());
         pickerDecorator.setPickOnBounds(false);
         customScene = new Scene(pickerDecorator, Color.TRANSPARENT);
         if(owner!=null) {
@@ -167,12 +169,14 @@ public class JFXCustomColorPickerDialog extends StackPane {
                     Color fontColor = ((Color) newVal.getFills().get(0).getFill()).grayscale()
                         .getRed() > 0.5 ? Color.valueOf(
                         "rgba(40, 40, 40, 0.87)") : Color.valueOf("rgba(255, 255, 255, 0.87)");
-                    tabs.lookupAll(".tab")
-                        .forEach(tabNode -> tabNode.lookupAll(".tab-label")
-                            .forEach(node -> ((Label) node).setTextFill(fontColor)));
-                    tabs.lookupAll(".tab")
-                        .forEach(tabNode -> tabNode.lookupAll(".jfx-rippler")
-                            .forEach(node -> ((JFXRippler) node).setRipplerFill(fontColor)));
+                    for (Node tabNode : tabs.lookupAll(".tab")) {
+                        for (Node node : tabNode.lookupAll(".tab-label")) {
+                            ((Label) node).setTextFill(fontColor);
+                        }
+                        for (Node node : tabNode.lookupAll(".jfx-rippler")) {
+                            ((JFXRippler) node).setRipplerFill(fontColor);
+                        }
+                    }
                     ((Pane) tabs.lookup(".tab-selected-line")).setBackground(new Background(new BackgroundFill(fontColor,CornerRadii.EMPTY,Insets.EMPTY)));
                     pickerDecorator.lookupAll(".jfx-decorator-button").forEach(button -> {
                         ((JFXButton) button).setRipplerFill(fontColor);
@@ -280,15 +284,19 @@ public class JFXCustomColorPickerDialog extends StackPane {
                     close();
                     break;
                 case ENTER:
-                    close();
-                    this.customColorProperty.set(curvedColorPicker.getColor(curvedColorPicker.getSelectedIndex()));
-                    this.onSave.run();
+                    updateColor();
                     break;
                 default:
                     break;
             }
         };
         dialog.addEventHandler(KeyEvent.ANY, keyEventListener);
+    }
+
+    private void updateColor() {
+        close();
+        this.customColorProperty.set(curvedColorPicker.getColor(curvedColorPicker.getSelectedIndex()));
+        this.onSave.run();
     }
 
     private void updateColorFromUserInput(String colorWebString) {

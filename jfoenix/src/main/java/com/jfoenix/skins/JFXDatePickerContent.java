@@ -1,28 +1,56 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.skins;
 
-import static java.time.temporal.ChronoUnit.DAYS;
-import static java.time.temporal.ChronoUnit.MONTHS;
-import static java.time.temporal.ChronoUnit.WEEKS;
-import static java.time.temporal.ChronoUnit.YEARS;
+import com.jfoenix.assets.JFoenixResources;
+import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXDatePicker;
+import com.jfoenix.controls.JFXListCell;
+import com.jfoenix.controls.JFXListView;
+import com.jfoenix.svg.SVGGlyph;
+import com.jfoenix.transitions.CachedTransition;
+import javafx.animation.Animation.Status;
+import javafx.animation.*;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.css.PseudoClass;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.control.DateCell;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.util.Duration;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -37,55 +65,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import com.jfoenix.controls.JFXButton;
-import com.jfoenix.controls.JFXDatePicker;
-import com.jfoenix.controls.JFXListCell;
-import com.jfoenix.controls.JFXListView;
-import com.jfoenix.svg.SVGGlyph;
-import com.jfoenix.transitions.CachedTransition;
-
-import javafx.animation.Animation.Status;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.ParallelTransition;
-import javafx.animation.Timeline;
-import javafx.animation.TranslateTransition;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.SnapshotParameters;
-import javafx.scene.control.DateCell;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.Border;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.BorderStroke;
-import javafx.scene.layout.BorderStrokeStyle;
-import javafx.scene.layout.BorderWidths;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
-import javafx.util.Duration;
+import static java.time.temporal.ChronoUnit.*;
 
 /**
  * @author Shadi Shaheen
@@ -96,6 +76,8 @@ public class JFXDatePickerContent extends VBox {
     private static final String ROBOTO = "Roboto";
     private static final Color DEFAULT_CELL_COLOR = Color.valueOf("#9C9C9C");
     private static final Color DEFAULT_COLOR = Color.valueOf("#313131");
+
+    private static final PseudoClass selectedYear = PseudoClass.getPseudoClass("selected-year");
 
     protected JFXDatePicker datePicker;
     private JFXButton backMonthButton;
@@ -128,28 +110,7 @@ public class JFXDatePickerContent extends VBox {
                 {
                     this.getStyleClass().setAll("data-picker-list-cell");
                     setOnMousePressed(click -> mousePressed = true);
-                    setOnMouseEntered(enter -> {
-                        if (!mousePressed) {
-                            setBackground(new Background(new BackgroundFill(Color.valueOf("#EDEDED"),
-                                CornerRadii.EMPTY,
-                                Insets.EMPTY)));
-                        }
-                    });
-                    setOnMouseExited(enter -> {
-                        if (!mousePressed) {
-                            setBackground(new Background(new BackgroundFill(Color.WHITE,
-                                CornerRadii.EMPTY,
-                                Insets.EMPTY)));
-                        }
-                    });
-                    setOnMouseReleased(release -> {
-                        if (mousePressed) {
-                            setBackground(new Background(new BackgroundFill(Color.WHITE,
-                                CornerRadii.EMPTY,
-                                Insets.EMPTY)));
-                        }
-                        mousePressed = false;
-                    });
+                    setOnMouseReleased(release -> mousePressed = false);
                     setOnMouseClicked(click -> {
                         String selectedItem = yearsListView.getSelectionModel().getSelectedItem();
                         if (selectedItem != null && selectedItem.equals(getText())) {
@@ -158,6 +119,8 @@ public class JFXDatePickerContent extends VBox {
                             forward(offset, YEARS, false, false);
                             hideTransition.setOnFinished(finish -> {
                                 selectedYearCell.set(this);
+                                pseudoClassStateChanged(selectedYear, true);
+                                setTextFill(datePicker.getDefaultColor());
                                 yearsListView.scrollTo(this.getIndex() - 2 >= 0 ? this.getIndex() - 2 : this.getIndex());
                                 hideTransition.setOnFinished(null);
                             });
@@ -175,16 +138,15 @@ public class JFXDatePickerContent extends VBox {
                 public void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
                     if (!empty) {
-                        cellRippler.setRipplerFill(Color.GREY);
-                        setAlignment(Pos.CENTER);
-                        if (!item.equals(selectedYearLabel.getText())) {
-                            // default style for each cell
-                            setStyle("-fx-font-size: 16; -fx-font-weight: NORMAL;");
-                            setTextFill(DEFAULT_COLOR);
-                        } else {
+                        final boolean isSelectedYear = item.equals(selectedYearLabel.getText());
+                        if (isSelectedYear) {
                             selectedYearCell.set(this);
                         }
-                        setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+                        pseudoClassStateChanged(selectedYear, isSelectedYear);
+                        setTextFill(isSelectedYear ? datePicker.getDefaultColor() : DEFAULT_COLOR);
+                    } else {
+                        pseudoClassStateChanged(selectedYear, false);
+                        setTextFill(DEFAULT_COLOR);
                     }
                 }
             });
@@ -201,8 +163,8 @@ public class JFXDatePickerContent extends VBox {
     private ObjectProperty<YearMonth> selectedYearMonth = new SimpleObjectProperty<>(this, "selectedYearMonth");
 
 
-    JFXDatePickerContent(final DatePicker datePicker) {
-        this.datePicker = (JFXDatePicker) datePicker;
+    JFXDatePickerContent(final JFXDatePicker datePicker) {
+        this.datePicker = datePicker;
         getStyleClass().add("date-picker-popup");
 
         LocalDate date = datePicker.getValue();
@@ -212,12 +174,12 @@ public class JFXDatePickerContent extends VBox {
         // add change listener to change the color of the selected year cell
         selectedYearCell.addListener((o, oldVal, newVal) -> {
             if (oldVal != null) {
-                oldVal.setStyle("-fx-font-size: 16; -fx-font-weight: NORMAL;");
+                oldVal.pseudoClassStateChanged(selectedYear, false);
                 oldVal.setTextFill(DEFAULT_COLOR);
             }
             if (newVal != null) {
-                newVal.setStyle("-fx-font-size: 24; -fx-font-weight: BOLD;");
-                newVal.setTextFill(this.datePicker.getDefaultColor());
+                newVal.pseudoClassStateChanged(selectedYear, true);
+                newVal.setTextFill(datePicker.getDefaultColor());
             }
         });
 
@@ -285,6 +247,8 @@ public class JFXDatePickerContent extends VBox {
         getChildren().add(contentPlaceHolder);
 
         refresh();
+
+        scrollToYear();
 
         addEventHandler(KeyEvent.ANY, event -> {
             Node node = getScene().getFocusOwner();
@@ -412,6 +376,16 @@ public class JFXDatePickerContent extends VBox {
         };
     }
 
+    private final void scrollToYear() {
+        int yearIndex = Integer.parseInt(selectedYearLabel.getText()) - 1900 - 2;
+        yearsListView.scrollTo(yearIndex >= 0 ? yearIndex : yearIndex + 2);
+    }
+
+    @Override
+    public String getUserAgentStylesheet() {
+        return JFoenixResources.load("css/controls/jfx-date-picker.css").toExternalForm();
+    }
+
     ObjectProperty<YearMonth> displayedYearMonthProperty() {
         return selectedYearMonth;
     }
@@ -457,8 +431,7 @@ public class JFXDatePickerContent extends VBox {
         yearLabelContainer.setFillHeight(false);
         yearLabelContainer.setOnMouseClicked((click) -> {
             if (!yearsListView.isVisible()) {
-                int yearIndex = Integer.parseInt(selectedYearLabel.getText()) - 1900 - 2;
-                yearsListView.scrollTo(yearIndex >= 0 ? yearIndex : yearIndex + 2);
+                scrollToYear();
                 hideTransition.stop();
                 showTransition.play();
             }
@@ -470,9 +443,8 @@ public class JFXDatePickerContent extends VBox {
         selectedDateLabel.setTextFill(Color.WHITE);
         selectedDateLabel.setFont(Font.font(ROBOTO, FontWeight.BOLD, 32));
         // selected date label container
-        HBox selectedDateContainer = new HBox();
+        HBox selectedDateContainer = new HBox(selectedDateLabel);
         selectedDateContainer.getStyleClass().add("spinner");
-        selectedDateContainer.getChildren().addAll(selectedDateLabel);
         selectedDateContainer.setAlignment(Pos.CENTER_LEFT);
         selectedDateContainer.setOnMouseClicked((click) -> {
             if (yearsListView.isVisible()) {
@@ -592,8 +564,9 @@ public class JFXDatePickerContent extends VBox {
         for (int i = 0; i < daysPerWeek; i++) {
             String name = weekDayNameFormatter.withLocale(getLocale()).format(date.plus(i, DAYS));
             // Fix Chinese environment week display incorrectly
+            // Take the last character of the Chinese weekday names
             if (weekDayNameFormatter.getLocale() == java.util.Locale.CHINA) {
-                name = name.substring(2, 3).toUpperCase();
+                name = name.substring(name.length() - 1).toUpperCase();
             } else {
                 name = name.substring(0, 1).toUpperCase();
             }
@@ -775,7 +748,8 @@ public class JFXDatePickerContent extends VBox {
     }
 
     private void goToDayCell(DateCell dateCell, int offset, ChronoUnit unit, boolean focusDayCell) {
-        goToDate(dayCellDate(dateCell).plus(offset, unit), focusDayCell);
+        YearMonth yearMonth = selectedYearMonth.get().plus(offset, unit);
+        goToDate(dayCellDate(dateCell).plus(offset, unit).withYear(yearMonth.getYear()), focusDayCell);
     }
 
     private void goToDate(LocalDate date, boolean focusDayCell) {

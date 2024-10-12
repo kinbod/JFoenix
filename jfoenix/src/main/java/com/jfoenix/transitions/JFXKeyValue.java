@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.transitions;
@@ -30,27 +32,28 @@ import java.util.function.Supplier;
  * @since 2017-09-21
  */
 
-public class JFXKeyValue {
+public class JFXKeyValue<T> {
 
-    private WritableValue<?> target;
-    private Supplier<WritableValue<?>> targetSupplier;
-    private Supplier<?> endValueSupplier;
-    private Object endValue;
-    private Supplier<Boolean> animateCondition = ()->true;
+    private WritableValue<T> target;
+    private Supplier<WritableValue<T>> targetSupplier;
+    private Supplier<T> endValueSupplier;
+    private T endValue;
+    private Supplier<Boolean> animateCondition = () -> true;
     private Interpolator interpolator;
 
-    private JFXKeyValue(){
+    private JFXKeyValue() {
     }
 
-    public static JFXKeyValueBuilder builder() {
-        return new JFXKeyValueBuilder();
+    // this builder is created to ensure type inference from method arguments
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public Object getEndValue() {
+    public T getEndValue() {
         return endValue == null ? endValueSupplier.get() : endValue;
     }
 
-    public WritableValue<?> getTarget() {
+    public WritableValue<T> getTarget() {
         return target == null ? targetSupplier.get() : target;
     }
 
@@ -58,53 +61,93 @@ public class JFXKeyValue {
         return interpolator;
     }
 
-    boolean isValid(){
-        return animateCondition.get();
+    public boolean isValid() {
+        return animateCondition == null || animateCondition.get();
     }
 
-    public static final class JFXKeyValueBuilder {
-        private WritableValue<?> target;
-        private Supplier<WritableValue<?>> targetSupplier;
-        private Supplier<?> endValueSupplier;
-        private Object endValue;
-        private Supplier<Boolean> animateCondition = ()->true;
-        private Interpolator interpolator;
+
+    public static final class Builder{
+        public <T> JFXKeyValueBuilder<T> setTarget(WritableValue<T> target) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setTarget(target);
+            return builder;
+        }
+        public <T> JFXKeyValueBuilder<T> setTargetSupplier(Supplier<WritableValue<T>> targetSupplier) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setTargetSupplier(targetSupplier);
+            return builder;
+        }
+
+        public <T> JFXKeyValueBuilder<T> setEndValueSupplier(Supplier<T> endValueSupplier) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setEndValueSupplier(endValueSupplier);
+            return builder;
+        }
+
+        public <T> JFXKeyValueBuilder<T> setEndValue(T endValue) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setEndValue(endValue);
+            return builder;
+        }
+
+        public <T> JFXKeyValueBuilder<T> setAnimateCondition(Supplier<Boolean> animateCondition) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setAnimateCondition(animateCondition);
+            return builder;
+        }
+
+        public <T> JFXKeyValueBuilder<T> setInterpolator(Interpolator interpolator) {
+            JFXKeyValueBuilder<T> builder = new JFXKeyValueBuilder<>();
+            builder.setInterpolator(interpolator);
+            return builder;
+        }
+    }
+
+
+    public static final class JFXKeyValueBuilder<T> {
+
+        private WritableValue<T> target;
+        private Supplier<WritableValue<T>> targetSupplier;
+        private Supplier<T> endValueSupplier;
+        private T endValue;
+        private Supplier<Boolean> animateCondition = () -> true;
+        private Interpolator interpolator = Interpolator.EASE_BOTH;
 
         private JFXKeyValueBuilder() {
         }
 
-        public JFXKeyValueBuilder setTarget(WritableValue<?> target) {
+        public JFXKeyValueBuilder<T> setTarget(WritableValue<T> target) {
             this.target = target;
             return this;
         }
 
-        public JFXKeyValueBuilder setTargetSupplier(Supplier<WritableValue<?>> targetSupplier) {
+        public JFXKeyValueBuilder<T> setTargetSupplier(Supplier<WritableValue<T>> targetSupplier) {
             this.targetSupplier = targetSupplier;
             return this;
         }
 
-        public JFXKeyValueBuilder setEndValueSupplier(Supplier<?> endValueSupplier) {
+        public JFXKeyValueBuilder<T> setEndValueSupplier(Supplier<T> endValueSupplier) {
             this.endValueSupplier = endValueSupplier;
             return this;
         }
 
-        public JFXKeyValueBuilder setEndValue(Object endValue) {
+        public JFXKeyValueBuilder<T> setEndValue(T endValue) {
             this.endValue = endValue;
             return this;
         }
 
-        public JFXKeyValueBuilder setAnimateCondition(Supplier<Boolean> animateCondition) {
+        public JFXKeyValueBuilder<T> setAnimateCondition(Supplier<Boolean> animateCondition) {
             this.animateCondition = animateCondition;
             return this;
         }
 
-        public JFXKeyValueBuilder setInterpolator(Interpolator interpolator) {
+        public JFXKeyValueBuilder<T> setInterpolator(Interpolator interpolator) {
             this.interpolator = interpolator;
             return this;
         }
 
-        public JFXKeyValue build() {
-            JFXKeyValue jFXKeyValue = new JFXKeyValue();
+        public JFXKeyValue<T> build() {
+            JFXKeyValue<T> jFXKeyValue = new JFXKeyValue<>();
             jFXKeyValue.target = this.target;
             jFXKeyValue.interpolator = this.interpolator;
             jFXKeyValue.targetSupplier = this.targetSupplier;

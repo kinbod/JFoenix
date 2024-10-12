@@ -1,36 +1,45 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
+import com.jfoenix.assets.JFoenixResources;
+import com.jfoenix.controls.base.IFXLabelFloatControl;
 import com.jfoenix.converters.base.NodeConverter;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
+import com.jfoenix.validation.base.ValidatorBase;
 import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.PaintConverter;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.css.*;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.Skin;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.StackPane;
@@ -49,7 +58,7 @@ import java.util.List;
  * @version 1.0
  * @since 2016-03-09
  */
-public class JFXComboBox<T> extends ComboBox<T> {
+public class JFXComboBox<T> extends ComboBox<T> implements IFXLabelFloatControl {
 
     /**
      * {@inheritDoc}
@@ -68,11 +77,11 @@ public class JFXComboBox<T> extends ComboBox<T> {
 
     private void initialize() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        this.setCellFactory(listView -> new JFXListCell<T>(){
+        this.setCellFactory(listView -> new JFXListCell<T>() {
             @Override
             public void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
-                updateDisplayText(this,item,empty);
+                updateDisplayText(this, item, empty);
             }
         });
 
@@ -83,11 +92,12 @@ public class JFXComboBox<T> extends ComboBox<T> {
                 // fixed clearing the combo box value is causing
                 // java prompt text to be shown because the button cell is not updated
                 JFXComboBox.this.valueProperty().addListener(observable -> {
-                  if(JFXComboBox.this.getValue() == null){
-                      updateItem(null, true );
-                  }
+                    if (JFXComboBox.this.getValue() == null) {
+                        updateItem(null, true);
+                    }
                 });
             }
+
             @Override
             protected void updateItem(T item, boolean empty) {
                 updateDisplayText(this, item, empty);
@@ -102,7 +112,7 @@ public class JFXComboBox<T> extends ComboBox<T> {
      */
     @Override
     public String getUserAgentStylesheet() {
-        return getClass().getResource("/css/controls/jfx-combo-box.css").toExternalForm();
+        return JFoenixResources.load("css/controls/jfx-combo-box.css").toExternalForm();
     }
 
     /**
@@ -217,6 +227,47 @@ public class JFXComboBox<T> extends ComboBox<T> {
 
     /***************************************************************************
      *                                                                         *
+     * Properties                                                              *
+     *                                                                         *
+     **************************************************************************/
+
+    /**
+     * wrapper for validation properties / methods
+     */
+    private ValidationControl validationControl = new ValidationControl(this);
+
+    @Override
+    public ValidatorBase getActiveValidator() {
+        return validationControl.getActiveValidator();
+    }
+
+    @Override
+    public ReadOnlyObjectProperty<ValidatorBase> activeValidatorProperty() {
+        return validationControl.activeValidatorProperty();
+    }
+
+    @Override
+    public ObservableList<ValidatorBase> getValidators() {
+        return validationControl.getValidators();
+    }
+
+    @Override
+    public void setValidators(ValidatorBase... validators) {
+        validationControl.setValidators(validators);
+    }
+
+    @Override
+    public boolean validate() {
+        return validationControl.validate();
+    }
+
+    @Override
+    public void resetValidation() {
+        validationControl.resetValidation();
+    }
+
+    /***************************************************************************
+     *                                                                         *
      * styleable Properties                                                    *
      *                                                                         *
      **************************************************************************/
@@ -284,6 +335,30 @@ public class JFXComboBox<T> extends ComboBox<T> {
     }
 
 
+    /**
+     * disable animation on validation
+     */
+    private StyleableBooleanProperty disableAnimation = new SimpleStyleableBooleanProperty(StyleableProperties.DISABLE_ANIMATION,
+        JFXComboBox.this,
+        "disableAnimation",
+        false);
+
+    @Override
+    public final StyleableBooleanProperty disableAnimationProperty() {
+        return this.disableAnimation;
+    }
+
+    @Override
+    public final Boolean isDisableAnimation() {
+        return disableAnimation != null && this.disableAnimationProperty().get();
+    }
+
+    @Override
+    public final void setDisableAnimation(final Boolean disabled) {
+        this.disableAnimationProperty().set(disabled);
+    }
+
+
     private static class StyleableProperties {
         private static final CssMetaData<JFXComboBox<?>, Paint> UNFOCUS_COLOR = new CssMetaData<JFXComboBox<?>, Paint>(
             "-jfx-unfocus-color",
@@ -328,30 +403,32 @@ public class JFXComboBox<T> extends ComboBox<T> {
             }
         };
 
+        private static final CssMetaData<JFXComboBox, Boolean> DISABLE_ANIMATION =
+            new CssMetaData<JFXComboBox, Boolean>("-jfx-disable-animation",
+                BooleanConverter.getInstance(), false) {
+                @Override
+                public boolean isSettable(JFXComboBox control) {
+                    return control.disableAnimation == null || !control.disableAnimation.isBound();
+                }
+
+                @Override
+                public StyleableBooleanProperty getStyleableProperty(JFXComboBox control) {
+                    return control.disableAnimationProperty();
+                }
+            };
 
         private static final List<CssMetaData<? extends Styleable, ?>> CHILD_STYLEABLES;
 
         static {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
-            Collections.addAll(styleables, UNFOCUS_COLOR, FOCUS_COLOR, LABEL_FLOAT);
+            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(ComboBox.getClassCssMetaData());
+            Collections.addAll(styleables, UNFOCUS_COLOR, FOCUS_COLOR, LABEL_FLOAT, DISABLE_ANIMATION);
             CHILD_STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
 
-    // inherit the styleable properties from parent
-    private List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
-
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
-        if (STYLEABLES == null) {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
-            styleables.addAll(getClassCssMetaData());
-            styleables.addAll(Control.getClassCssMetaData());
-            STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-        return STYLEABLES;
+        return getClassCssMetaData();
     }
 
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {

@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.skins;
@@ -29,11 +31,10 @@ import com.sun.javafx.binding.ExpressionHelper;
 import com.sun.javafx.scene.control.skin.ComboBoxPopupControl;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
 import java.lang.reflect.Field;
@@ -66,8 +67,8 @@ public class JFXTimePickerSkin extends ComboBoxPopupControl<LocalTime> {
             changeListenersField.setAccessible(true);
             ChangeListener[] changeListeners = (ChangeListener[]) changeListenersField.get(value);
             // remove parent focus listener to prevent editor class cast exception
-            for(int i = changeListeners.length - 1; i > 0; i--){
-                if(changeListeners[i] != null && changeListeners[i].getClass().getName().contains("ComboBoxPopupControl")){
+            for (int i = changeListeners.length - 1; i > 0; i--) {
+                if (changeListeners[i] != null && changeListeners[i].getClass().getName().contains("ComboBoxPopupControl")) {
                     timePicker.focusedProperty().removeListener(changeListeners[i]);
                     break;
                 }
@@ -107,6 +108,7 @@ public class JFXTimePickerSkin extends ComboBoxPopupControl<LocalTime> {
         //dialog = new JFXDialog(null, content, transitionType, overlayClose)
         registerChangeListener(timePicker.converterProperty(), "CONVERTER");
         registerChangeListener(timePicker.valueProperty(), "VALUE");
+        registerChangeListener(timePicker.defaultColorProperty(), "DEFAULT_COLOR");
     }
 
     @Override
@@ -126,30 +128,30 @@ public class JFXTimePickerSkin extends ComboBoxPopupControl<LocalTime> {
             content.init();
             content.clearFocus();
         }
-        if (jfxTimePicker.isOverLay()) {
-            if (dialog == null) {
-                StackPane dialogParent = jfxTimePicker.getDialogParent();
-                if (dialogParent == null) {
-                    dialogParent = (StackPane) getSkinnable().getScene().getRoot();
-                }
-                dialog = new JFXDialog(dialogParent, (Region) getPopupContent(),
-                    DialogTransition.CENTER, true);
-                arrowButton.setOnMouseClicked((click) -> {
-                    if (jfxTimePicker.isOverLay()) {
-                        StackPane parent = jfxTimePicker.getDialogParent();
-                        if (parent == null) {
-                            parent = (StackPane) getSkinnable().getScene().getRoot();
-                        }
-                        dialog.show(parent);
-                    }
-                });
+        if (dialog == null && jfxTimePicker.isOverLay()) {
+            StackPane dialogParent = jfxTimePicker.getDialogParent();
+            if (dialogParent == null) {
+                dialogParent = (StackPane) jfxTimePicker.getScene().getRoot();
             }
+            dialog = new JFXDialog(dialogParent, (Region) getPopupContent(),
+                DialogTransition.CENTER, true);
+            arrowButton.setOnMouseClicked((click) -> {
+                if (jfxTimePicker.isOverLay()) {
+                    StackPane parent = jfxTimePicker.getDialogParent();
+                    if (parent == null) {
+                        parent = (StackPane) jfxTimePicker.getScene().getRoot();
+                    }
+                    dialog.show(parent);
+                }
+            });
         }
     }
 
     @Override
     protected void handleControlPropertyChanged(String p) {
-        if ("CONVERTER".equals(p)) {
+        if ("DEFAULT_COLOR".equals(p)) {
+            ((JFXTextField) getEditor()).setFocusColor(jfxTimePicker.getDefaultColor());
+        } else if ("CONVERTER".equals(p)) {
             updateDisplayNode();
         } else if ("EDITOR".equals(p)) {
             getEditableInputNode();

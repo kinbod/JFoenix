@@ -1,27 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
+import com.jfoenix.assets.JFoenixResources;
 import com.jfoenix.skins.JFXChipViewSkin;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Control;
@@ -33,6 +38,7 @@ import javafx.util.StringConverter;
 
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * JFXChipArea is the material design implementation of chip Input.
@@ -88,7 +94,7 @@ public class JFXChipView<T> extends Control {
      */
     @Override
     public String getUserAgentStylesheet() {
-        return getClass().getResource("/css/controls/jfx-chip-view.css").toExternalForm();
+        return JFoenixResources.load("css/controls/jfx-chip-view.css").toExternalForm();
     }
 
     /**
@@ -123,6 +129,42 @@ public class JFXChipView<T> extends Control {
     public void setChipFactory(BiFunction<JFXChipView<T>, T, JFXChip<T>> chipFactory) {
         chipFactoryProperty().set(chipFactory);
     }
+
+    private ObjectProperty<Function<T, T>> selectionHandler;
+
+    public Function<T, T> getSelectionHandler() {
+        return selectionHandler == null ? null : selectionHandler.get();
+    }
+
+    public ObjectProperty<Function<T, T>> selectionHandlerProperty() {
+        if (selectionHandler == null) {
+            selectionHandler = new SimpleObjectProperty<>(this, "selectionHandler");
+        }
+        return selectionHandler;
+    }
+
+    public void setSelectionHandler(Function<T, T> selectionHandler) {
+        selectionHandlerProperty().set(selectionHandler);
+    }
+
+
+    /**
+     * The prompt text to display in the TextArea.
+     */
+    private StringProperty promptText = new SimpleStringProperty(this, "promptText", "");
+
+    public final StringProperty promptTextProperty() {
+        return promptText;
+    }
+
+    public final String getPromptText() {
+        return promptText.get();
+    }
+
+    public final void setPromptText(String value) {
+        promptText.set(value);
+    }
+
 
     private JFXAutoCompletePopup<T> autoCompletePopup = new JFXChipViewSkin.ChipsAutoComplete<T>();
 

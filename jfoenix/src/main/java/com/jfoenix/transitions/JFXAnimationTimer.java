@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.transitions;
@@ -24,7 +26,12 @@ import javafx.beans.value.WritableValue;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Custom AnimationTimer that can be created the same way as a timeline,
@@ -41,17 +48,41 @@ public class JFXAnimationTimer extends AnimationTimer {
     private Set<AnimationHandler> animationHandlers = new HashSet<>();
     private long startTime = -1;
     private boolean running = false;
-    private List<CacheMomento> caches = new ArrayList<>();
+    private List<CacheMemento> caches = new ArrayList<>();
     private double totalElapsedMilliseconds;
+
 
     public JFXAnimationTimer(JFXKeyFrame... keyFrames) {
         for (JFXKeyFrame keyFrame : keyFrames) {
-            Duration duration = keyFrame.getTime();
-            final Set<JFXKeyValue> keyValuesSet = keyFrame.getValues();
+            Duration duration = keyFrame.getDuration();
+            final Set<JFXKeyValue<?>> keyValuesSet = keyFrame.getValues();
             if (!keyValuesSet.isEmpty()) {
-                animationHandlers.add(new AnimationHandler(duration, keyFrame.getValues()));
+                animationHandlers.add(new AnimationHandler(duration, keyFrame.getAnimateCondition(), keyFrame.getValues()));
             }
         }
+    }
+
+    private HashMap<JFXKeyFrame, AnimationHandler> mutableFrames = new HashMap<>();
+
+    public void addKeyFrame(JFXKeyFrame keyFrame) throws Exception {
+        if (isRunning()) {
+            throw new Exception("Can't update animation timer while running");
+        }
+        Duration duration = keyFrame.getDuration();
+        final Set<JFXKeyValue<?>> keyValuesSet = keyFrame.getValues();
+        if (!keyValuesSet.isEmpty()) {
+            final AnimationHandler handler = new AnimationHandler(duration, keyFrame.getAnimateCondition(), keyFrame.getValues());
+            animationHandlers.add(handler);
+            mutableFrames.put(keyFrame, handler);
+        }
+    }
+
+    public void removeKeyFrame(JFXKeyFrame keyFrame) throws Exception {
+        if (isRunning()) {
+            throw new Exception("Can't update animation timer while running");
+        }
+        AnimationHandler handler = mutableFrames.get(keyFrame);
+        animationHandlers.remove(handler);
     }
 
     @Override
@@ -62,7 +93,7 @@ public class JFXAnimationTimer extends AnimationTimer {
         for (AnimationHandler animationHandler : animationHandlers) {
             animationHandler.init();
         }
-        for (CacheMomento cache : caches) {
+        for (CacheMemento cache : caches) {
             cache.cache();
         }
     }
@@ -83,6 +114,10 @@ public class JFXAnimationTimer extends AnimationTimer {
         }
     }
 
+    /**
+     * this method will pause the timer and reverse the animation if the timer already
+     * started otherwise it will start the animation.
+     */
     public void reverseAndContinue() {
         if (isRunning()) {
             super.stop();
@@ -103,7 +138,7 @@ public class JFXAnimationTimer extends AnimationTimer {
         for (AnimationHandler handler : animationHandlers) {
             handler.clear();
         }
-        for (CacheMomento cache : caches) {
+        for (CacheMemento cache : caches) {
             cache.restore();
         }
         if (onFinished != null) {
@@ -135,7 +170,7 @@ public class JFXAnimationTimer extends AnimationTimer {
         caches.clear();
         if (nodesToCache != null) {
             for (Node node : nodesToCache) {
-                caches.add(new CacheMomento(node));
+                caches.add(new CacheMemento(node));
             }
         }
     }
@@ -148,23 +183,25 @@ public class JFXAnimationTimer extends AnimationTimer {
         animationHandlers.clear();
     }
 
-    class AnimationHandler {
+    static class AnimationHandler {
         private double duration;
         private double currentDuration;
-        private Set<JFXKeyValue> keyValues;
+        private Set<JFXKeyValue<?>> keyValues;
+        private Supplier<Boolean> animationCondition = null;
         private boolean finished = false;
 
         private HashMap<WritableValue<?>, Object> initialValuesMap = new HashMap<>();
         private HashMap<WritableValue<?>, Object> endValuesMap = new HashMap<>();
 
-        public AnimationHandler(Duration duration, Set<JFXKeyValue> keyValues) {
+        AnimationHandler(Duration duration, Supplier<Boolean> animationCondition, Set<JFXKeyValue<?>> keyValues) {
             this.duration = duration.toMillis();
             currentDuration = this.duration;
             this.keyValues = keyValues;
+            this.animationCondition = animationCondition;
         }
 
         public void init() {
-            finished = false;
+            finished = animationCondition == null ? false : !animationCondition.get();
             for (JFXKeyValue keyValue : keyValues) {
                 if (keyValue.getTarget() != null) {
                     // replaced putIfAbsent for mobile compatibility
@@ -178,25 +215,31 @@ public class JFXAnimationTimer extends AnimationTimer {
             }
         }
 
-        public void reverse(double now) {
+        void reverse(double now) {
+            finished = animationCondition == null ? false : !animationCondition.get();
             currentDuration = duration - (currentDuration - now);
             // update initial values
             for (JFXKeyValue keyValue : keyValues) {
-                if (keyValue.getTarget() != null) {
-                    initialValuesMap.put(keyValue.getTarget(), keyValue.getTarget().getValue());
-                    endValuesMap.put(keyValue.getTarget(), keyValue.getEndValue());
+                final WritableValue target = keyValue.getTarget();
+                if (target != null) {
+                    initialValuesMap.put(target, target.getValue());
+                    endValuesMap.put(target, keyValue.getEndValue());
                 }
             }
         }
 
         // now in milliseconds
         public void animate(double now) {
+            // if animate condition for the key frame is not met then do nothing
+            if (finished) {
+                return;
+            }
             if (now <= currentDuration) {
                 for (JFXKeyValue keyValue : keyValues) {
                     if (keyValue.isValid()) {
                         final WritableValue target = keyValue.getTarget();
                         final Object endValue = endValuesMap.get(target);
-                        if (target != null && !target.getValue().equals(endValue)) {
+                        if (endValue != null && target != null && !target.getValue().equals(endValue)) {
                             target.setValue(keyValue.getInterpolator().interpolate(initialValuesMap.get(target), endValue, now / currentDuration));
                         }
                     }
@@ -208,7 +251,11 @@ public class JFXAnimationTimer extends AnimationTimer {
                         if (keyValue.isValid()) {
                             final WritableValue target = keyValue.getTarget();
                             if (target != null) {
-                                target.setValue(endValuesMap.get(target));
+                                // set updated end value instead of cached
+                                final Object endValue = keyValue.getEndValue();
+                                if (endValue != null) {
+                                    target.setValue(endValue);
+                                }
                             }
                         }
                     }
@@ -221,9 +268,11 @@ public class JFXAnimationTimer extends AnimationTimer {
             for (JFXKeyValue keyValue : keyValues) {
                 if (keyValue.isValid()) {
                     final WritableValue target = keyValue.getTarget();
-                    final Object endValue = keyValue.getEndValue();
-                    if (target != null && !target.getValue().equals(endValue)) {
-                        target.setValue(endValue);
+                    if (target != null) {
+                        final Object endValue = keyValue.getEndValue();
+                        if (endValue != null && !target.getValue().equals(endValue)) {
+                            target.setValue(endValue);
+                        }
                     }
                 }
             }
@@ -234,7 +283,7 @@ public class JFXAnimationTimer extends AnimationTimer {
             endValuesMap.clear();
         }
 
-        public void dispose() {
+        void dispose() {
             clear();
             keyValues.clear();
         }

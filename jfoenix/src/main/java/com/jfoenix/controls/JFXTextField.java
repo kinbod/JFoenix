@@ -1,34 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
+import com.jfoenix.assets.JFoenixResources;
+import com.jfoenix.controls.base.IFXLabelFloatControl;
 import com.jfoenix.skins.JFXTextFieldSkin;
 import com.jfoenix.validation.base.ValidatorBase;
 import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.PaintConverter;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.collections.FXCollections;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
-import javafx.css.*;
-import javafx.scene.control.Control;
+import javafx.css.CssMetaData;
+import javafx.css.SimpleStyleableBooleanProperty;
+import javafx.css.SimpleStyleableObjectProperty;
+import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.paint.Color;
@@ -45,7 +55,7 @@ import java.util.List;
  * @version 1.0
  * @since 2016-03-09
  */
-public class JFXTextField extends TextField implements IFXTextInputControl {
+public class JFXTextField extends TextField implements IFXLabelFloatControl {
 
     /**
      * {@inheritDoc}
@@ -90,63 +100,73 @@ public class JFXTextField extends TextField implements IFXTextInputControl {
      * Properties                                                              *
      *                                                                         *
      **************************************************************************/
-
     /**
-     * holds the current active validator on the text field in case of validation error
+     * wrapper for validation properties / methods
      */
-    private ReadOnlyObjectWrapper<ValidatorBase> activeValidator = new ReadOnlyObjectWrapper<>();
+    protected ValidationControl validationControl = new ValidationControl(this);
 
     @Override
     public ValidatorBase getActiveValidator() {
-        return activeValidator == null ? null : activeValidator.get();
+        return validationControl.getActiveValidator();
     }
 
     @Override
     public ReadOnlyObjectProperty<ValidatorBase> activeValidatorProperty() {
-        return this.activeValidator.getReadOnlyProperty();
+        return validationControl.activeValidatorProperty();
     }
-
-    /**
-     * list of validators that will validate the text value upon calling
-     * {{@link #validate()}
-     */
-    private ObservableList<ValidatorBase> validators = FXCollections.observableArrayList();
 
     @Override
     public ObservableList<ValidatorBase> getValidators() {
-        return validators;
+        return validationControl.getValidators();
     }
 
     @Override
     public void setValidators(ValidatorBase... validators) {
-        this.validators.addAll(validators);
+        validationControl.setValidators(validators);
+    }
+
+    @Override
+    public boolean validate() {
+        return validationControl.validate();
+    }
+
+    @Override
+    public void resetValidation() {
+        validationControl.resetValidation();
     }
 
     /**
-     * validates the text value using the list of validators provided by the user
-     * {{@link #setValidators(ValidatorBase...)}
-     *
-     * @return true if the value is valid else false
+     * An optional leading icon for the TextField
      */
-    @Override
-    public boolean validate() {
-        for (ValidatorBase validator : validators) {
-            if (validator.getSrcControl() == null) {
-                validator.setSrcControl(this);
-            }
-            validator.validate();
-            if (validator.getHasErrors()) {
-                activeValidator.set(validator);
-                return false;
-            }
-        }
-        activeValidator.set(null);
-        return true;
+    private ObjectProperty<Node> leadingGraphic = new SimpleObjectProperty<>();
+
+    public Node getLeadingGraphic() {
+        return leadingGraphic.get();
     }
 
-    public void resetValidation() {
-        pseudoClassStateChanged(ValidatorBase.PSEUDO_CLASS_ERROR, false);
-        activeValidator.set(null);
+    public ObjectProperty<Node> leadingGraphicProperty() {
+        return leadingGraphic;
+    }
+
+    public void setLeadingGraphic(Node leadingGraphic) {
+        this.leadingGraphic.set(leadingGraphic);
+    }
+
+    /**
+     * An optional trailing icon for the TextField
+     */
+    private ObjectProperty<Node> trailingGraphic = new SimpleObjectProperty<>();
+
+    public Node getTrailingGraphic() {
+        return trailingGraphic.get();
+    }
+
+    public ObjectProperty<Node> trailingGraphicProperty() {
+        return trailingGraphic;
+    }
+
+    public void setTrailingGraphic(Node trailingGraphic) {
+        this.trailingGraphic.set(trailingGraphic);
     }
 
     /***************************************************************************
@@ -162,7 +182,7 @@ public class JFXTextField extends TextField implements IFXTextInputControl {
      * this control.
      */
     private static final String DEFAULT_STYLE_CLASS = "jfx-text-field";
-    private static final String USER_AGENT_STYLESHEET = JFXTextField.class.getResource("/css/controls/jfx-text-field.css").toExternalForm();
+    private static final String USER_AGENT_STYLESHEET = JFoenixResources.load("css/controls/jfx-text-field.css").toExternalForm();
 
 
     /**
@@ -323,25 +343,15 @@ public class JFXTextField extends TextField implements IFXTextInputControl {
 
         static {
             final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
+                TextField.getClassCssMetaData());
             Collections.addAll(styleables, UNFOCUS_COLOR, FOCUS_COLOR, LABEL_FLOAT, DISABLE_ANIMATION);
             CHILD_STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
 
-    // inherit the styleable properties from parent
-    private List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
-
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
-        if (STYLEABLES == null) {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
-            styleables.addAll(getClassCssMetaData());
-            styleables.addAll(TextField.getClassCssMetaData());
-            STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-        return STYLEABLES;
+        return getClassCssMetaData();
     }
 
     public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {

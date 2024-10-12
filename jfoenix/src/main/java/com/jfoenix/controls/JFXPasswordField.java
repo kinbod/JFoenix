@@ -1,57 +1,56 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
 
-import com.jfoenix.skins.JFXTextFieldSkin;
+import com.jfoenix.assets.JFoenixResources;
+import com.jfoenix.controls.base.IFXLabelFloatControl;
+import com.jfoenix.skins.JFXPasswordFieldSkin;
 import com.jfoenix.validation.base.ValidatorBase;
-import com.sun.javafx.css.converters.BooleanConverter;
-import com.sun.javafx.css.converters.PaintConverter;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.collections.FXCollections;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
-import javafx.css.*;
-import javafx.scene.control.Control;
-import javafx.scene.control.PasswordField;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
+import javafx.scene.control.IndexRange;
 import javafx.scene.control.Skin;
-import javafx.scene.control.TextField;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 
 /**
  * JFXPasswordField is the material design implementation of a password Field.
  *
  * @author Shadi Shaheen
- * @version 1.0
+ * @version 2.0
  * @since 2016-03-09
  */
-public class JFXPasswordField extends PasswordField implements IFXTextInputControl {
+public class JFXPasswordField extends JFXTextField implements IFXLabelFloatControl {
 
     /**
      * {@inheritDoc}
      */
     public JFXPasswordField() {
+        getStyleClass().add("password-field");
+        setAccessibleRole(AccessibleRole.PASSWORD_FIELD);
         initialize();
     }
 
@@ -60,13 +59,64 @@ public class JFXPasswordField extends PasswordField implements IFXTextInputContr
      */
     @Override
     protected Skin<?> createDefaultSkin() {
-        return new JFXTextFieldSkin<>(this);
+        return new JFXPasswordFieldSkin(this);
     }
 
     private void initialize() {
         this.getStyleClass().add(DEFAULT_STYLE_CLASS);
         if ("dalvik".equals(System.getProperty("java.vm.name").toLowerCase())) {
             this.setStyle("-fx-skin: \"com.jfoenix.android.skins.JFXTextFieldSkinAndroid\";");
+        }
+    }
+
+    /***************************************************************************
+     *                                                                         *
+     * Methods                                                                 *
+     *                                                                         *
+     **************************************************************************/
+
+    @Override
+    public void cut() {
+        if (isMaskedText()) {
+            // No-op
+            return;
+        }
+        copy();
+        IndexRange selection = getSelection();
+        deleteText(selection.getStart(), selection.getEnd());
+    }
+
+    /**
+     * Transfers the currently selected range in the text to the clipboard,
+     * leaving the current selection.
+     */
+    @Override
+    public void copy() {
+        if (isMaskedText()) {
+            // No-op
+            return;
+        }
+        final String selectedText = getSelectedText();
+        if (selectedText.length() > 0) {
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(selectedText);
+            Clipboard.getSystemClipboard().setContent(content);
+        }
+    }
+
+    /***************************************************************************
+     *                                                                         *
+     * Accessibility handling                                                  *
+     *                                                                         *
+     **************************************************************************/
+
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        switch (attribute) {
+            case TEXT:
+                return null;
+            default:
+                return super.queryAccessibleAttribute(attribute, parameters);
         }
     }
 
@@ -85,62 +135,52 @@ public class JFXPasswordField extends PasswordField implements IFXTextInputContr
      **************************************************************************/
 
     /**
-     * holds the current active validator on the password field in case of validation error
+     * wrapper for validation properties / methods
      */
-    private ReadOnlyObjectWrapper<ValidatorBase> activeValidator = new ReadOnlyObjectWrapper<>();
+    private ValidationControl validationControl = new ValidationControl(this);
 
     @Override
     public ValidatorBase getActiveValidator() {
-        return activeValidator == null ? null : activeValidator.get();
+        return validationControl.getActiveValidator();
     }
 
     @Override
     public ReadOnlyObjectProperty<ValidatorBase> activeValidatorProperty() {
-        return this.activeValidator.getReadOnlyProperty();
+        return validationControl.activeValidatorProperty();
     }
-
-    /**
-     * list of validators that will validate the password value upon calling
-     * {{@link #validate()}
-     */
-    private ObservableList<ValidatorBase> validators = FXCollections.observableArrayList();
 
     @Override
     public ObservableList<ValidatorBase> getValidators() {
-        return validators;
+        return validationControl.getValidators();
     }
 
     @Override
     public void setValidators(ValidatorBase... validators) {
-        this.validators.addAll(validators);
+        validationControl.setValidators(validators);
     }
 
-    /**
-     * validates the password value using the list of validators provided by the user
-     * {{@link #setValidators(ValidatorBase...)}
-     *
-     * @return true if the value is valid else false
-     */
     @Override
     public boolean validate() {
-        for (ValidatorBase validator : validators) {
-            if (validator.getSrcControl() == null) {
-                validator.setSrcControl(this);
-            }
-            validator.validate();
-            if (validator.getHasErrors()) {
-                activeValidator.set(validator);
-                return false;
-            }
-        }
-        activeValidator.set(null);
-        return true;
+        return validationControl.validate();
     }
 
     @Override
     public void resetValidation() {
-        pseudoClassStateChanged(ValidatorBase.PSEUDO_CLASS_ERROR, false);
-        activeValidator.set(null);
+        validationControl.resetValidation();
+    }
+
+    private BooleanProperty maskedText = new SimpleBooleanProperty(true);
+
+    public boolean isMaskedText() {
+        return maskedText.get();
+    }
+
+    public BooleanProperty maskedTextProperty() {
+        return maskedText;
+    }
+
+    public void setMaskedText(boolean maskedText) {
+        this.maskedText.set(maskedText);
     }
 
     /***************************************************************************
@@ -156,190 +196,5 @@ public class JFXPasswordField extends PasswordField implements IFXTextInputContr
      * this control.
      */
     private static final String DEFAULT_STYLE_CLASS = "jfx-password-field";
-    private static final String USER_AGENT_STYLESHEET = JFXPasswordField.class.getResource("/css/controls/jfx-password-field.css").toExternalForm();
-
-    /**
-     * set true to show a float the prompt text when focusing the field
-     */
-    private StyleableBooleanProperty labelFloat = new SimpleStyleableBooleanProperty(StyleableProperties.LABEL_FLOAT,
-        JFXPasswordField.this,
-        "lableFloat",
-        false);
-
-    @Override
-    public final StyleableBooleanProperty labelFloatProperty() {
-        return this.labelFloat;
-    }
-
-    @Override
-    public final boolean isLabelFloat() {
-        return this.labelFloatProperty().get();
-    }
-
-    @Override
-    public final void setLabelFloat(final boolean labelFloat) {
-        this.labelFloatProperty().set(labelFloat);
-    }
-
-    /**
-     * default color used when the field is unfocused
-     */
-    private StyleableObjectProperty<Paint> unFocusColor = new SimpleStyleableObjectProperty<>(StyleableProperties.UNFOCUS_COLOR,
-        JFXPasswordField.this,
-        "unFocusColor",
-        Color.rgb(77,
-            77,
-            77));
-
-    @Override
-    public Paint getUnFocusColor() {
-        return unFocusColor == null ? Color.rgb(77, 77, 77) : unFocusColor.get();
-    }
-
-    @Override
-    public StyleableObjectProperty<Paint> unFocusColorProperty() {
-        return this.unFocusColor;
-    }
-
-    @Override
-    public void setUnFocusColor(Paint color) {
-        this.unFocusColor.set(color);
-    }
-
-    /**
-     * default color used when the field is focused
-     */
-    private StyleableObjectProperty<Paint> focusColor = new SimpleStyleableObjectProperty<>(StyleableProperties.FOCUS_COLOR,
-        JFXPasswordField.this,
-        "focusColor",
-        Color.valueOf("#4059A9"));
-
-    @Override
-    public Paint getFocusColor() {
-        return focusColor == null ? Color.valueOf("#4059A9") : focusColor.get();
-    }
-
-    @Override
-    public StyleableObjectProperty<Paint> focusColorProperty() {
-        return this.focusColor;
-    }
-
-    @Override
-    public void setFocusColor(Paint color) {
-        this.focusColor.set(color);
-    }
-
-    /**
-     * disable animation on validation
-     */
-    private StyleableBooleanProperty disableAnimation = new SimpleStyleableBooleanProperty(StyleableProperties.DISABLE_ANIMATION,
-        JFXPasswordField.this,
-        "disableAnimation",
-        false);
-
-    @Override
-    public final StyleableBooleanProperty disableAnimationProperty() {
-        return this.disableAnimation;
-    }
-
-    @Override
-    public final Boolean isDisableAnimation() {
-        return disableAnimation != null && this.disableAnimationProperty().get();
-    }
-
-    @Override
-    public final void setDisableAnimation(final Boolean disabled) {
-        this.disableAnimationProperty().set(disabled);
-    }
-
-
-    private static class StyleableProperties {
-        private static final CssMetaData<JFXPasswordField, Paint> UNFOCUS_COLOR = new CssMetaData<JFXPasswordField, Paint>(
-            "-jfx-unfocus-color",
-            PaintConverter.getInstance(),
-            Color.valueOf("#A6A6A6")) {
-            @Override
-            public boolean isSettable(JFXPasswordField control) {
-                return control.unFocusColor == null || !control.unFocusColor.isBound();
-            }
-
-            @Override
-            public StyleableProperty<Paint> getStyleableProperty(JFXPasswordField control) {
-                return control.unFocusColorProperty();
-            }
-        };
-        private static final CssMetaData<JFXPasswordField, Paint> FOCUS_COLOR = new CssMetaData<JFXPasswordField, Paint>(
-            "-jfx-focus-color",
-            PaintConverter.getInstance(),
-            Color.valueOf("#3f51b5")) {
-            @Override
-            public boolean isSettable(JFXPasswordField control) {
-                return control.focusColor == null || !control.focusColor.isBound();
-            }
-
-            @Override
-            public StyleableProperty<Paint> getStyleableProperty(JFXPasswordField control) {
-                return control.focusColorProperty();
-            }
-        };
-
-        private static final CssMetaData<JFXPasswordField, Boolean> LABEL_FLOAT = new CssMetaData<JFXPasswordField, Boolean>(
-            "-jfx-label-float",
-            BooleanConverter.getInstance(),
-            false) {
-            @Override
-            public boolean isSettable(JFXPasswordField control) {
-                return control.labelFloat == null || !control.labelFloat.isBound();
-            }
-
-            @Override
-            public StyleableBooleanProperty getStyleableProperty(JFXPasswordField control) {
-                return control.labelFloatProperty();
-            }
-        };
-
-        private static final CssMetaData<JFXPasswordField, Boolean> DISABLE_ANIMATION =
-            new CssMetaData<JFXPasswordField, Boolean>("-fx-disable-animation",
-                BooleanConverter.getInstance(), false) {
-                @Override
-                public boolean isSettable(JFXPasswordField control) {
-                    return control.disableAnimation == null || !control.disableAnimation.isBound();
-                }
-
-                @Override
-                public StyleableBooleanProperty getStyleableProperty(JFXPasswordField control) {
-                    return control.disableAnimationProperty();
-                }
-            };
-
-
-        private static final List<CssMetaData<? extends Styleable, ?>> CHILD_STYLEABLES;
-
-        static {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
-            Collections.addAll(styleables, UNFOCUS_COLOR, FOCUS_COLOR, LABEL_FLOAT, DISABLE_ANIMATION);
-            CHILD_STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-    }
-
-    // inherit the styleable properties from parent
-    private List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
-
-    @Override
-    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
-        if (STYLEABLES == null) {
-            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(
-                Control.getClassCssMetaData());
-            styleables.addAll(getClassCssMetaData());
-            styleables.addAll(TextField.getClassCssMetaData());
-            STYLEABLES = Collections.unmodifiableList(styleables);
-        }
-        return STYLEABLES;
-    }
-
-    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
-        return StyleableProperties.CHILD_STYLEABLES;
-    }
-
+    private static final String USER_AGENT_STYLESHEET = JFoenixResources.load("css/controls/jfx-password-field.css").toExternalForm();
 }

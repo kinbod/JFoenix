@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.skins;
@@ -23,7 +25,7 @@ import com.jfoenix.controls.JFXPopup;
 import com.jfoenix.controls.JFXPopup.PopupHPosition;
 import com.jfoenix.controls.JFXPopup.PopupVPosition;
 import com.jfoenix.effects.JFXDepthManager;
-import com.jfoenix.transitions.CacheMomento;
+import com.jfoenix.transitions.CacheMemento;
 import com.jfoenix.transitions.CachedTransition;
 import javafx.animation.*;
 import javafx.animation.Animation.Status;
@@ -37,7 +39,7 @@ import javafx.util.Duration;
 
 /**
  * <h1>Material Design Popup Skin</h1>
- *
+ * TODO: REWORK
  * @author Shadi Shaheen
  * @version 2.0
  * @since 2017-03-01
@@ -54,7 +56,9 @@ public class JFXPopupSkin implements Skin<JFXPopup> {
 
     public JFXPopupSkin(JFXPopup control) {
         this.control = control;
-        scale = new Scale(1, 0, 0, 0);
+        // set scale y to 0.01 instead of 0 to allow layout of the content,
+        // otherwise it will cause exception in traverse engine, when focusing the 1st node
+        scale = new Scale(1, 0.01, 0, 0);
         popupContent = control.getPopupContent();
         container.getStyleClass().add("jfx-popup-container");
         container.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
@@ -63,7 +67,7 @@ public class JFXPopupSkin implements Skin<JFXPopup> {
         container.setOpacity(0);
         root = JFXDepthManager.createMaterialNode(container, 4);
         animation = getAnimation();
-    }
+}
 
 
     public void reset(PopupVPosition vAlign, PopupHPosition hAlign, double offsetX, double offsetY) {
@@ -122,7 +126,7 @@ public class JFXPopupSkin implements Skin<JFXPopup> {
                         new KeyValue(scale.yProperty(), 1, Interpolator.EASE_BOTH)
                     )
                 )
-                , new CacheMomento(popupContent));
+                , new CacheMemento(popupContent));
             setCycleDuration(Duration.seconds(.4));
             setDelay(Duration.seconds(0));
         }
@@ -137,7 +141,7 @@ public class JFXPopupSkin implements Skin<JFXPopup> {
     public void init() {
         animation.stop();
         container.setOpacity(0);
-        scale.setX(0);
-        scale.setY(0);
+        scale.setX(1);
+        scale.setY(0.1);
     }
 }

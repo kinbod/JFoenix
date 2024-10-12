@@ -1,20 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (c) 2016 JFoenix
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.jfoenix.controls;
@@ -26,6 +28,7 @@ import com.sun.javafx.css.converters.PaintConverter;
 import com.sun.javafx.css.converters.SizeConverter;
 import javafx.animation.*;
 import javafx.beans.DefaultProperty;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.*;
@@ -52,7 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * JFXRippler is the material design implementation of a ripple effect.
  * the ripple effect can be applied to any node in the scene. JFXRippler is
  * a {@link StackPane} container that holds a specified node (control node) and a ripple generator.
- *
+ * <p>
  * UPDATE NOTES:
  * - fireEventProgrammatically(Event) method has been removed as the ripple controller is
  * the control itself, so you can trigger manual ripple by firing mouse event on the control
@@ -172,9 +175,9 @@ public class JFXRippler extends StackPane {
 
     // Override this method to create JFXRippler for a control outside the ripple
     protected void positionControl(Node control) {
-        if(this.position.get() == RipplerPos.BACK){
+        if (this.position.get() == RipplerPos.BACK) {
             getChildren().add(control);
-        }else{
+        } else {
             getChildren().add(0, control);
         }
     }
@@ -199,6 +202,7 @@ public class JFXRippler extends StackPane {
 
     /**
      * generate the clipping mask
+     *
      * @return the mask node
      */
     protected Node getMask() {
@@ -227,9 +231,9 @@ public class JFXRippler extends StackPane {
                 break;
             case FIT:
                 mask = new Region();
-                if(control instanceof Shape){
+                if (control instanceof Shape) {
                     ((Region) mask).setShape((Shape) control);
-                }else if(control instanceof Region){
+                } else if (control instanceof Region) {
                     ((Region) mask).setShape(((Region) control).getShape());
                     JFXNodeUtils.updateBackground(((Region) control).getBackground(), (Region) mask);
                 }
@@ -248,6 +252,7 @@ public class JFXRippler extends StackPane {
 
     /**
      * compute the ripple radius
+     *
      * @return the ripple radius size
      */
     protected double computeRippleRadius() {
@@ -256,7 +261,7 @@ public class JFXRippler extends StackPane {
         return Math.min(Math.sqrt(width2 + height2), RIPPLE_MAX_RADIUS) * 1.1 + 5;
     }
 
-    protected void setOverLayBounds(Rectangle overlay){
+    protected void setOverLayBounds(Rectangle overlay) {
         overlay.setWidth(control.getLayoutBounds().getWidth());
         overlay.setHeight(control.getLayoutBounds().getHeight());
     }
@@ -267,8 +272,9 @@ public class JFXRippler extends StackPane {
     protected void initControlListeners() {
         // if the control got resized the overlay rect must be rest
         control.layoutBoundsProperty().addListener(observable -> resetRippler());
-        if(getChildren().contains(control))
+        if (getChildren().contains(control)) {
             control.boundsInParentProperty().addListener(observable -> resetRippler());
+        }
         control.addEventHandler(MouseEvent.MOUSE_PRESSED,
             (event) -> createRipple(event.getX(), event.getY()));
         // create fade out transition for the ripple
@@ -279,7 +285,7 @@ public class JFXRippler extends StackPane {
      * creates Ripple effect
      */
     protected void createRipple(double x, double y) {
-        if(!isRipplerDisabled()) {
+        if (!isRipplerDisabled()) {
             rippler.setGeneratorCenterX(x);
             rippler.setGeneratorCenterY(y);
             rippler.createRipple();
@@ -292,24 +298,30 @@ public class JFXRippler extends StackPane {
 
     /**
      * creates Ripple effect in the center of the control
+     *
      * @return a runnable to release the ripple when needed
      */
     public Runnable createManualRipple() {
-        rippler.setGeneratorCenterX(control.getLayoutBounds().getWidth() / 2);
-        rippler.setGeneratorCenterY(control.getLayoutBounds().getHeight() / 2);
-        rippler.createRipple();
+        if (!isRipplerDisabled()) {
+            rippler.setGeneratorCenterX(control.getLayoutBounds().getWidth() / 2);
+            rippler.setGeneratorCenterY(control.getLayoutBounds().getHeight() / 2);
+            rippler.createRipple();
+            return () -> {
+                // create fade out transition for the ripple
+                releaseRipple();
+            };
+        }
         return () -> {
-            // create fade out transition for the ripple
-            releaseRipple();
         };
     }
 
     /**
      * show/hide the ripple overlay
+     *
      * @param visible
      * @param forceOverlay used to hold the overlay after ripple action
      */
-    public void setOverlayVisible(boolean visible, boolean forceOverlay){
+    public void setOverlayVisible(boolean visible, boolean forceOverlay) {
         this.forceOverlay = forceOverlay;
         setOverlayVisible(visible);
     }
@@ -317,12 +329,13 @@ public class JFXRippler extends StackPane {
     /**
      * show/hide the ripple overlay
      * NOTE: setting overlay visibility to false will reset forceOverlay to false
+     *
      * @param visible
      */
-    public void setOverlayVisible(boolean visible){
-        if(visible){
+    public void setOverlayVisible(boolean visible) {
+        if (visible) {
             showOverlay();
-        }else{
+        } else {
             forceOverlay = !visible ? false : forceOverlay;
             hideOverlay();
         }
@@ -343,14 +356,14 @@ public class JFXRippler extends StackPane {
 
     @Deprecated
     public void hideOverlay() {
-        if(!forceOverlay){
+        if (!forceOverlay) {
             if (rippler.overlayRect != null) {
                 rippler.overlayRect.inAnimation.stop();
             }
             if (rippler.overlayRect != null) {
                 rippler.overlayRect.outAnimation.play();
             }
-        }else{
+        } else {
             System.err.println("Ripple Overlay is forced!");
         }
     }
@@ -403,7 +416,7 @@ public class JFXRippler extends StackPane {
 
         private void releaseRipple() {
             Ripple ripple = ripplesQueue.poll();
-            if(ripple!=null) {
+            if (ripple != null) {
                 ripple.inAnimation.stop();
                 ripple.outAnimation = new Timeline(
                     new KeyFrame(Duration.millis(Math.min(800, (0.9 * 500) / ripple.getScaleX()))
@@ -413,8 +426,9 @@ public class JFXRippler extends StackPane {
                 if (generating.getAndSet(false)) {
                     if (overlayRect != null) {
                         overlayRect.inAnimation.stop();
-                        if (!forceOverlay)
+                        if (!forceOverlay) {
                             overlayRect.outAnimation.play();
+                        }
                     }
                 }
             }
@@ -430,14 +444,16 @@ public class JFXRippler extends StackPane {
                 overlayRect = new OverLayRipple();
                 overlayRect.setClip(getMask());
                 getChildren().add(0, overlayRect);
-                if (ripplerFill.get() instanceof Color) {
-                    overlayRect.setFill(new Color(((Color) ripplerFill.get()).getRed(),
-                        ((Color) ripplerFill.get()).getGreen(),
-                        ((Color) ripplerFill.get()).getBlue(),
-                        0.2));
-                }else{
-                    overlayRect.setFill(Color.TRANSPARENT);
-                }
+                overlayRect.fillProperty().bind(Bindings.createObjectBinding(() -> {
+                    if (ripplerFill.get() instanceof Color) {
+                        return new Color(((Color) ripplerFill.get()).getRed(),
+                            ((Color) ripplerFill.get()).getGreen(),
+                            ((Color) ripplerFill.get()).getBlue(),
+                            0.2);
+                    } else {
+                        return Color.TRANSPARENT;
+                    }
+                }, ripplerFill));
             }
         }
 
@@ -462,7 +478,7 @@ public class JFXRippler extends StackPane {
                 setOverLayBounds(this);
                 this.getStyleClass().add("jfx-rippler-overlay");
                 // update initial position
-                if(JFXRippler.this.getChildrenUnmodifiable().contains(control)) {
+                if (JFXRippler.this.getChildrenUnmodifiable().contains(control)) {
                     double diffMinX = Math.abs(control.getBoundsInLocal().getMinX() - control.getLayoutBounds().getMinX());
                     double diffMinY = Math.abs(control.getBoundsInLocal().getMinY() - control.getLayoutBounds().getMinY());
                     Bounds bounds = control.getBoundsInParent();
@@ -553,6 +569,7 @@ public class JFXRippler extends StackPane {
 
         public void clear() {
             getChildren().clear();
+            rippler.overlayRect = null;
             generating.set(false);
         }
     }
@@ -794,7 +811,7 @@ public class JFXRippler extends StackPane {
 
         static {
             final List<CssMetaData<? extends Styleable, ?>> styleables =
-                new ArrayList<>(Parent.getClassCssMetaData());
+                new ArrayList<>(StackPane.getClassCssMetaData());
             Collections.addAll(styleables,
                 RIPPLER_RECENTER,
                 RIPPLER_RADIUS,
